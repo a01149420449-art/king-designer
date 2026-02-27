@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King Designer 👑 | متجر الملوك</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --king-blue: #0071e3; --bg: #f5f5f7; --white: #ffffff; --red: #ff3b30; --green: #34c759; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; transition: 0.3s; }
+        body { background: var(--bg); color: #1d1d1f; font-size: 16px; }
+
+        /* ── الهيدر ── */
+        header { 
+            background: rgba(255,255,255,0.8); backdrop-filter: blur(15px); 
+            padding: 15px 5%; display: flex; justify-content: space-between; align-items: center;
+            position: fixed; top: 0; width: 100%; z-index: 1000; border-bottom: 1px solid #eee;
+        }
+        .logo { font-size: 20px; font-weight: 900; color: var(--king-blue); }
+        nav { display: flex; gap: 15px; }
+        nav a { text-decoration: none; color: #333; font-weight: 800; font-size: 14px; cursor: pointer; position: relative; }
+        
+        /* إشعارات الأرقام */
+        .badge { 
+            position: absolute; top: -8px; left: -12px; background: var(--red); 
+            color: white; font-size: 10px; padding: 2px 6px; border-radius: 50%; display: none; 
+        }
+
+        /* ── الصفحات ── */
+        .page { display: none; padding: 100px 5% 40px; animation: fadeIn 0.4s; }
+        .active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ── المتجر (1000 لوجو) ── */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+        .card { background: var(--white); border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .btn-king { background: var(--king-blue); color: white; border: none; padding: 10px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px; }
+
+        /* ── السلة ── */
+        .cart-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
+
+        /* ── الشات ── */
+        .chat-win { max-width: 450px; margin: auto; height: 60vh; background: #e5ddd5; border-radius: 25px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .msgs { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .bubble { padding: 10px 14px; border-radius: 15px; max-width: 85%; font-size: 14px; }
+        .user { background: #dcf8c6; align-self: flex-end; }
+        .admin { background: #fff; align-self: flex-start; }
+        
+        .send-bar { padding: 10px; background: #f0f0f0; display: flex; gap: 8px; }
+        .send-bar input { flex: 1; border-radius: 20px; border: none; padding: 10px 15px; outline: none; }
+        .btn-send { background: var(--green); color: white; border: none; padding: 0 15px; border-radius: 20px; font-weight: 800; cursor: pointer; }
+
+        /* ── حالة الفراغ ── */
+        .empty { text-align: center; padding: 40px; color: #888; border: 2px dashed #ddd; border-radius: 20px; background: white; }
+    </style>
+</head>
+<body onload="init()">
+
+<div id="ban-screen" style="display:none; height:100vh; background:#000; color:#fff; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+    <h1 style="font-size: 80px;">🚫</h1>
+    <h1 id="ban-msg">تم طردك من المملكة</h1>
+    <p style="color:red; margin-top:10px;">لا يمكنك دخول الموقع بقرار من الملك.</p>
+</div>
+
+<div id="main-ui">
+    <header>
+        <div class="logo">King Designer 👑</div>
+        <nav>
+            <a onclick="showPage('store')">🏠 المتجر</a>
+            <a onclick="showPage('cart-page')">🛒 السلة <span id="c-badge" class="badge">0</span></a>
+            <a onclick="showPage('mail')">📩 البريد <span id="m-badge" class="badge">0</span></a>
+            <a onclick="showPage('chat')">💬 الشات</a>
+        </nav>
+    </header>
+
+    <div id="store" class="page active">
+        <div id="products-grid" class="grid"></div>
+    </div>
+
+    <div id="cart-page" class="page">
+        <h2 style="text-align:center; margin-bottom:20px;">🛒 سلتك الملكية</h2>
+        <div id="cart-list"></div>
+        <div id="cart-summary" style="display:none; text-align:center; margin-top:20px;">
+            <h3 id="total-price" style="margin-bottom:15px;"></h3>
+            <button class="btn-king" style="background:var(--green); padding:15px;" onclick="checkout()">تأكيد الطلب وإرساله للملك 🚀</button>
+        </div>
+    </div>
+
+    <div id="mail" class="page">
+        <h2 style="text-align:center; margin-bottom:20px;">📩 البريد وأكوادي</h2>
+        <div id="mail-box"></div>
+    </div>
+
+    <div id="chat" class="page">
+        <div class="chat-win">
+            <div id="msgs-area" class="msgs"></div>
+            <div class="send-bar">
+                <input type="text" id="chat-input" placeholder="اكتب للملك...">
+                <button class="btn-send" onclick="sendMsg()">أرسل زي الملوك</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let user = localStorage.getItem('king_user');
+    let cart = [];
+
+    // ── نظام الرادار (الباند والتحديث) ──
+    function radar() {
+        if(!user) return;
+        const banned = JSON.parse(localStorage.getItem('banned_users')) || [];
+        if(banned.includes(user)) {
+            document.getElementById('main-ui').style.display = 'none';
+            document.getElementById('ban-screen').style.display = 'flex';
+            document.getElementById('ban-msg').innerText = `عفواً يا ${user}، تم طردك!`;
+            return;
+        } else {
+            document.getElementById('main-ui').style.display = 'block';
+            document.getElementById('ban-screen').style.display = 'none';
+        }
+        renderAll(); // تحديث مستمر للشات والبريد
+    }
+
+    function init() {
+        if(!user) {
+            user = prompt("أهلاً بك في King Designer! ما اسمك يا ملك؟");
+            if(user) { localStorage.setItem('king_user', user); location.reload(); }
+        }
+        generateLogos();
+        setInterval(radar, 1000); // الرادار يفحص كل ثانية
+    }
+
+    function generateLogos() {
+        let h = "";
+        for(let i=1; i<=100; i++) {
+            h += `<div class="card">
+                <h3>لوجو ملكي #${i} 🎨</h3>
+                <p style="color:var(--king-blue); font-weight:bold; margin:10px 0;">${300+i*5} ج.م</p>
+                <button class="btn-king" onclick="addToCart('${i}', ${300+i*5})">🛒 إضافة للسلة</button>
+            </div>`;
+        }
+        document.getElementById('products-grid').innerHTML = h;
+    }
+
+    function addToCart(id, price) {
+        cart.push({id, price});
+        alert("أضيف للسلة ✅");
+        renderAll();
+    }
+
+    function renderCart() {
+        const list = document.getElementById('cart-list');
+        const summary = document.getElementById('cart-summary');
+        if(cart.length === 0) {
+            list.innerHTML = `<div class="empty">السلة فاضية.. اطلب حاجة يا ملك! 🛒</div>`;
+            summary.style.display = 'none';
+        } else {
+            summary.style.display = 'block';
+            list.innerHTML = cart.map((item, i) => `
+                <div class="cart-item">
+                    <span>لوجو #${item.id} - ${item.price} ج.م</span>
+                    <button onclick="cart.splice(${i},1); renderAll();" style="border:none; color:red; background:none;">❌</button>
+                </div>`).join('');
+            document.getElementById('total-price').innerText = `الإجمالي: ${cart.reduce((s,i)=>s+i.price,0)} ج.م`;
+        }
+    }
+
+    function checkout() {
+        let txt = `👑 طلب جديد من ${user}:\n` + cart.map(i => `- لوجو #${i.id}`).join('\n');
+        let chat = JSON.parse(localStorage.getItem(`chat_${user}`)) || [];
+        chat.push({role:'user', text: txt});
+        localStorage.setItem(`chat_${user}`, JSON.stringify(chat));
+        cart = []; renderAll(); showPage('chat');
+        alert("تم إرسال طلبك للملك! ✅");
+    }
+
+    function renderAll() {
+        // تحديث البادج
+        document.getElementById('c-badge').innerText = cart.length;
+        document.getElementById('c-badge').style.display = cart.length > 0 ? 'block' : 'none';
+        
+        const mails = JSON.parse(localStorage.getItem(`mails_${user}`)) || [];
+        document.getElementById('m-badge').innerText = mails.length;
+        document.getElementById('m-badge').style.display = mails.length > 0 ? 'block' : 'none';
+
+        // بريد وتحديثات
+        document.getElementById('mail-box').innerHTML = mails.length ? mails.map(m => `
+            <div class="card">
+                <h3>${m.title}</h3>
+                ${m.type === 'REFRESH' ? '<button class="btn-king" onclick="location.reload()">🔄 تحديث الموقع الآن</button>' : `<p>كودك هو: <b>${m.code}</b></p>`}
+            </div>`).join('') : `<div class="empty">البريد فاضي حالياً يا ملك 📩</div>`;
+
+        // شات
+        let chat = JSON.parse(localStorage.getItem(`chat_${user}`)) || [];
+        document.getElementById('msgs-area').innerHTML = chat.map(m => `<div class="bubble ${m.role}">${m.text}</div>`).join('');
+        document.getElementById('msgs-area').scrollTop = 9999;
+        
+        renderCart();
+        localStorage.setItem(`status_${user}`, 'online');
+    }
+
+    function sendMsg() {
+        let v = document.getElementById('chat-input').value; if(!v) return;
+        let chat = JSON.parse(localStorage.getItem(`chat_${user}`)) || [];
+        chat.push({role:'user', text: v});
+        localStorage.setItem(`chat_${user}`, JSON.stringify(chat));
+        document.getElementById('chat-input').value = ""; renderAll();
+    }
+
+    function showPage(p) {
+        document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+        document.getElementById(p).classList.add('active');
+        renderAll();
+    }
+</script>
+</body>
+</html>
