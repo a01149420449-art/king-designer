@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>King Admin | 👑 مركز التحكم</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --red: #ff3b30; --blue: #0071e3; --green: #34c759; --purple: #5856d6; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { display: flex; height: 100vh; background: #f5f5f7; }
+        .sidebar { width: 120px; background: #1d1d1f; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 20px; border-radius: 0 30px 30px 0; }
+        .app-icon { width: 80px; height: 80px; border-radius: 20px; cursor: pointer; color: white; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s; }
+        .app-icon span { font-size: 10px; margin-top: 5px; font-weight: bold; }
+        .active-app { border: 3px solid white; transform: scale(1.1); }
+        .content { flex: 1; padding: 30px; overflow-y: auto; }
+        .screen { display: none; } .active { display: block; }
+        .card { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .chat-box { display: flex; height: 500px; background: #e5ddd5; border-radius: 25px; overflow: hidden; }
+        .u-list { width: 30%; background: white; overflow-y: auto; border-left: 1px solid #eee; }
+        .u-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: bold; }
+        .msgs { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .bubble { padding: 12px; border-radius: 15px; max-width: 80%; }
+        .bubble.admin { background: #dcf8c6; align-self: flex-end; }
+        .bubble.user { background: #fff; align-self: flex-start; }
+        input, select { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ddd; margin-bottom: 10px; outline: none; }
+        .btn { padding: 15px; border-radius: 15px; border: none; cursor: pointer; font-weight: 900; color: white; width: 100%; transition: 0.3s; }
+        .btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <button class="app-icon active-app" style="background:var(--green);" onclick="openApp('chats', this)">💬<span>واتساب</span></button>
+    <button class="app-icon" style="background:var(--purple);" onclick="openApp('codes', this)">🎟️<span>أكوادي</span></button>
+    <button class="app-icon" style="background:var(--blue);" onclick="openApp('updates', this)">🚀<span>تحديثاتي</span></button>
+    <button class="app-icon" style="background:var(--red);" onclick="openApp('bandy', this)">🚫<span>باندي</span></button>
+</div>
+
+<div class="content">
+    <div id="chats" class="screen active">
+        <h1>واتساب الملك 🟢</h1>
+        <div class="chat-box">
+            <div class="u-list" id="user-list"></div>
+            <div style="flex:1; display:flex; flex-direction:column;">
+                <div class="msgs" id="msg-area"></div>
+                <div style="padding:15px; background:white; border-top:1px solid #eee;">
+                    <button class="btn" style="background:var(--purple); margin-bottom:10px;" onclick="sendWelcome()">✨ إرسال الترحيب والدفع</button>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="reply-inp" placeholder="اكتب رسالتك..." style="margin:0;">
+                        <button class="btn" style="background:var(--green); width:100px; margin:0;" onclick="reply()">إرسال</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="codes" class="screen">
+        <h1>تطبيق "أكوادي" 🎟️</h1>
+        <div class="card">
+            <label>اختر العميل:</label>
+            <select id="code-user-select"></select>
+            <input type="text" id="mail-title" placeholder="عنوان الكود (مثلاً: كود اللوجو)">
+            <input type="text" id="mail-content" placeholder="رمز الكود">
+            <button class="btn" style="background:var(--purple);" onclick="sendToMail()">إرسال لبريد العميل ✅</button>
+        </div>
+    </div>
+
+    <div id="updates" class="screen">
+        <h1>تطبيق "تحديثاتي" 🚀</h1>
+        <div class="card">
+            <input type="text" id="up-msg" placeholder="ما الجديد في هذا التحديث؟">
+            <button class="btn" style="background:var(--blue);" onclick="pushUpdate()">إرسال زر التحديث الفوري للكل 📢</button>
+        </div>
+    </div>
+
+    <div id="bandy" class="screen">
+        <h1>نظام "باندي" 🚫</h1>
+        <div class="card" style="border: 2px solid var(--red);">
+            <h3>طرد عميل من المملكة</h3>
+            <select id="ban-user-select"></select>
+            <button class="btn" style="background:var(--red);" onclick="applyBan()">إعطاء باند نهائي 💀</button>
+        </div>
+        <div class="card">
+            <h3>قائمة المطرودين حالياً:</h3>
+            <div id="banned-list-area"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let curUser = "";
+    const welcomeMsg = "أهلاً بك يا ملك! 👑\nللدفع وتجهيز طلبك:\n📱 فودافون كاش: 01061104228\n💸 إنستا باي: 01061104228\nارسل صورة التحويل هنا!";
+
+    function openApp(id, btn) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.app-icon').forEach(i => i.classList.remove('active-app'));
+        btn.classList.add('active-app');
+        refresh();
+    }
+
+    function refresh() {
+        const users = [];
+        const banned = JSON.parse(localStorage.getItem('banned_users')) || [];
+        for (let i=0; i<localStorage.length; i++) {
+            if(localStorage.key(i).startsWith('chat_')) users.push(localStorage.key(i).replace('chat_', ''));
+        }
+        
+        document.getElementById('user-list').innerHTML = users.map(u => `<div class="u-item" onclick="openChat('${u}')">👤 ${u}</div>`).join('');
+        const selects = ['code-user-select', 'ban-user-select'];
+        selects.forEach(s => document.getElementById(s).innerHTML = users.map(u => `<option value="${u}">${u}</option>`).join(''));
+
+        document.getElementById('banned-list-area').innerHTML = banned.map(b => `
+            <div style="display:flex; justify-content:space-between; padding:10px; background:#fff1f1; border-radius:10px; margin-bottom:5px; border:1px solid red;">
+                <b style="color:red;">🚫 ${b}</b>
+                <button onclick="unban('${b}')" style="background:green; color:white; border:none; padding:5px 10px; border-radius:8px; cursor:pointer;">فك الباند</button>
+            </div>
+        `).join('');
+    }
+
+    function openChat(u) {
+        curUser = u;
+        const chat = JSON.parse(localStorage.getItem(`chat_${u}`)) || [];
+        document.getElementById('msg-area').innerHTML = chat.map(m => `<div class="bubble ${m.role}">${m.text}</div>`).join('');
+        document.getElementById('msg-area').scrollTop = 9999;
+    }
+
+    function reply() {
+        const t = document.getElementById('reply-inp').value;
+        if(!t || !curUser) return;
+        let chat = JSON.parse(localStorage.getItem(`chat_${curUser}`)) || [];
+        chat.push({role:'admin', text:t});
+        localStorage.setItem(`chat_${curUser}`, JSON.stringify(chat));
+        document.getElementById('reply-inp').value = ""; openChat(curUser);
+    }
+
+    function sendWelcome() { if(curUser) { 
+        let chat = JSON.parse(localStorage.getItem(`chat_${curUser}`)) || [];
+        chat.push({role:'admin', text:welcomeMsg});
+        localStorage.setItem(`chat_${curUser}`, JSON.stringify(chat));
+        openChat(curUser);
+    }}
+
+    function sendToMail() {
+        const u = document.getElementById('code-user-select').value;
+        let mails = JSON.parse(localStorage.getItem(`mails_${u}`)) || [];
+        mails.push({title: document.getElementById('mail-title').value, code: document.getElementById('mail-content').value});
+        localStorage.setItem(`mails_${u}`, JSON.stringify(mails));
+        alert("تم إرسال الكود لبريد العميل!");
+    }
+
+    function pushUpdate() {
+        const m = document.getElementById('up-msg').value;
+        for (let i=0; i<localStorage.length; i++) {
+            if(localStorage.key(i).startsWith('chat_')) {
+                let u = localStorage.key(i).replace('chat_', '');
+                let mails = JSON.parse(localStorage.getItem(`mails_${u}`)) || [];
+                mails.push({title: m, type: 'REFRESH'});
+                localStorage.setItem(`mails_${u}`, JSON.stringify(mails));
+            }
+        }
+        alert("تم إرسال إشعار التحديث للجميع!");
+    }
+
+    function applyBan() {
+        const u = document.getElementById('ban-user-select').value;
+        let banned = JSON.parse(localStorage.getItem('banned_users')) || [];
+        if(!banned.includes(u)) banned.push(u);
+        localStorage.setItem('banned_users', JSON.stringify(banned));
+        refresh();
+    }
+
+    function unban(u) {
+        let banned = JSON.parse(localStorage.getItem('banned_users')) || [];
+        localStorage.setItem('banned_users', JSON.stringify(banned.filter(x => x !== u)));
+        refresh();
+    }
+
+    setInterval(refresh, 3000); refresh();
+</script>
+</body>
+</html>
